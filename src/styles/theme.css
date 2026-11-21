@@ -1,0 +1,322 @@
+/* =========================================================
+   EVERLEAF — DESIGN TOKENS
+   A little growth with every page.
+   Aesthetic: Modern Literary
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   1. BRAND COLORS
+   Official Everleaf color palette
+   --------------------------------------------------------- */
+
+:root {
+  /* Primary brand colors */
+  --everleaf-espresso: #594536;
+  --everleaf-walnut: #967252;
+  --everleaf-cognac: #b58b68;
+  --everleaf-caramel: #c49a70;
+
+  /* Supporting brand colors */
+  --everleaf-sand: #efe7da;
+  --everleaf-parchment: #f8f5ef;
+  --everleaf-ivory: #fffcf7;
+
+  /* -------------------------------------------------------
+     2. SEMANTIC COLORS — LIGHT THEME
+     These underlying variables are also used by Tailwind.
+     ------------------------------------------------------- */
+
+  color-scheme: light;
+
+  /* Application surfaces */
+  --everleaf-background: var(--everleaf-parchment);
+  --everleaf-surface: var(--everleaf-ivory);
+  --everleaf-surface-secondary: var(--everleaf-sand);
+  --everleaf-surface-elevated: #ffffff;
+
+  /* Text colors */
+  --everleaf-text-primary: #806247;
+  --everleaf-text-secondary: #796653;
+  --everleaf-text-muted: #9b8977;
+  --everleaf-text-inverse: #ffffff;
+
+  /* Brand actions */
+  --everleaf-primary: var(--everleaf-walnut);
+  --everleaf-primary-hover: #806247;
+  --everleaf-accent: var(--everleaf-cognac);
+  --everleaf-highlight: var(--everleaf-caramel);
+
+  /* Borders and separators */
+  --everleaf-border: #e9dfd2;
+  --everleaf-border-strong: #dccbb5;
+
+  /* Feedback colors */
+  --everleaf-success: #52765b;
+  --everleaf-warning: #a87535;
+  --everleaf-danger: #b45449;
+  --everleaf-info: #59758a;
+
+  /* Focus and interaction */
+  --everleaf-focus: var(--everleaf-cognac);
+  --everleaf-overlay: rgb(42 29 22 / 45%);
+
+  /* -------------------------------------------------------
+     3. SEMANTIC ALIASES
+     Used by global CSS and application components.
+     ------------------------------------------------------- */
+
+  --color-background: var(--everleaf-background);
+  --color-surface: var(--everleaf-surface);
+  --color-surface-secondary: var(--everleaf-surface-secondary);
+  --color-surface-elevated: var(--everleaf-surface-elevated);
+
+  --color-text-primary: var(--everleaf-text-primary);
+  --color-text-secondary: var(--everleaf-text-secondary);
+  --color-text-muted: var(--everleaf-text-muted);
+  --color-text-inverse: var(--everleaf-text-inverse);
+
+  --color-primary: var(--everleaf-primary);
+  --color-primary-hover: var(--everleaf-primary-hover);
+  --color-accent: var(--everleaf-accent);
+  --color-highlight: var(--everleaf-highlight);
+
+  --color-border: var(--everleaf-border);
+  --color-border-strong: var(--everleaf-border-strong);
+
+  --color-success: var(--everleaf-success);
+  --color-warning: var(--everleaf-warning);
+  --color-danger: var(--everleaf-danger);
+  --color-info: var(--everleaf-info);
+
+  --color-focus: var(--everleaf-focus);
+  --color-overlay: var(--everleaf-overlay);
+
+  /* -------------------------------------------------------
+     4. TYPOGRAPHY
+     ------------------------------------------------------- */
+
+  --font-serif: 'Lora', Georgia, serif;
+
+  --font-sans:
+    'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --everleaf-font-display: var(--font-serif);
+  --everleaf-font-body: var(--font-sans);
+
+  --font-display: var(--everleaf-font-display);
+  --font-body: var(--everleaf-font-body);
+
+  /* Font sizes */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --text-5xl: 3rem;
+
+  /* Font weights */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Line heights */
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.7;
+
+  /* Letter spacing */
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+
+  /* -------------------------------------------------------
+     5. SPACING
+     ------------------------------------------------------- */
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* -------------------------------------------------------
+     6. BORDERS AND CORNERS
+     ------------------------------------------------------- */
+
+  --border-width: 1px;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* -------------------------------------------------------
+     7. SHADOWS
+     ------------------------------------------------------- */
+
+  --shadow-sm: 0 1px 2px rgb(73 49 38 / 5%);
+  --shadow-md: 0 4px 12px rgb(73 49 38 / 7%);
+  --shadow-lg: 0 10px 28px rgb(73 49 38 / 10%);
+  --shadow-xl: 0 18px 40px rgb(73 49 38 / 12%);
+
+  /* -------------------------------------------------------
+     8. LAYOUT
+     ------------------------------------------------------- */
+
+  --sidebar-width: 260px;
+  --sidebar-width-collapsed: 76px;
+  --topbar-height: 76px;
+
+  --content-max-width: 1600px;
+
+  /* -------------------------------------------------------
+     9. TRANSITIONS
+     ------------------------------------------------------- */
+
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 350ms ease;
+
+  /* -------------------------------------------------------
+     10. LAYERS
+     ------------------------------------------------------- */
+
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-sidebar: 300;
+  --z-overlay: 400;
+  --z-modal: 500;
+  --z-toast: 600;
+}
+
+/* ---------------------------------------------------------
+   11. DARK THEME
+   Activated through data-theme="dark".
+   Brand identity remains consistent.
+   --------------------------------------------------------- */
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Application surfaces */
+  --everleaf-background: #211a16;
+  --everleaf-surface: #2d231d;
+  --everleaf-surface-secondary: #3a2c23;
+  --everleaf-surface-elevated: #443329;
+
+  /* Text colors */
+  --everleaf-text-primary: #f5eee3;
+  --everleaf-text-secondary: #d0bdaa;
+  --everleaf-text-muted: #a9917d;
+  --everleaf-text-inverse: #211a16;
+
+  /* Brand actions */
+  --everleaf-primary: #b78b67;
+  --everleaf-primary-hover: #c49a72;
+  --everleaf-accent: #c49a72;
+  --everleaf-highlight: #a77b59;
+
+  /* Borders and separators */
+  --everleaf-border: #514034;
+  --everleaf-border-strong: #6a5140;
+
+  /* Feedback colors */
+  --everleaf-success: #86ad8c;
+  --everleaf-warning: #d9aa69;
+  --everleaf-danger: #da8278;
+  --everleaf-info: #8dafc5;
+
+  /* Focus and interaction */
+  --everleaf-focus: #c49a72;
+  --everleaf-overlay: rgb(0 0 0 / 60%);
+
+  /* Dark theme shadows */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 15%);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 20%);
+  --shadow-lg: 0 10px 28px rgb(0 0 0 / 25%);
+  --shadow-xl: 0 18px 40px rgb(0 0 0 / 30%);
+}
+
+/* ---------------------------------------------------------
+   12. TAILWIND CSS 4 THEME MAPPING
+
+   Each Tailwind utility maps to a separate underlying
+   variable. This avoids circular/self-referencing tokens.
+   --------------------------------------------------------- */
+
+@theme inline {
+  /* Brand colors */
+  --color-espresso: var(--everleaf-espresso);
+  --color-walnut: var(--everleaf-walnut);
+  --color-cognac: var(--everleaf-cognac);
+  --color-caramel: var(--everleaf-caramel);
+  --color-sand: var(--everleaf-sand);
+  --color-parchment: var(--everleaf-parchment);
+  --color-ivory: var(--everleaf-ivory);
+
+  /* Semantic surfaces */
+  --color-background: var(--everleaf-background);
+  --color-surface: var(--everleaf-surface);
+  --color-surface-secondary: var(--everleaf-surface-secondary);
+  --color-surface-elevated: var(--everleaf-surface-elevated);
+
+  /* Semantic text */
+  --color-text-primary: var(--everleaf-text-primary);
+  --color-text-secondary: var(--everleaf-text-secondary);
+  --color-text-muted: var(--everleaf-text-muted);
+  --color-text-inverse: var(--everleaf-text-inverse);
+
+  /* Actions and accents */
+  --color-primary: var(--everleaf-primary);
+  --color-primary-hover: var(--everleaf-primary-hover);
+  --color-accent: var(--everleaf-accent);
+  --color-highlight: var(--everleaf-highlight);
+
+  /* Borders */
+  --color-border: var(--everleaf-border);
+  --color-border-strong: var(--everleaf-border-strong);
+
+  /* Feedback */
+  --color-success: var(--everleaf-success);
+  --color-warning: var(--everleaf-warning);
+  --color-danger: var(--everleaf-danger);
+  --color-info: var(--everleaf-info);
+
+  /* Typography */
+  --font-display: var(--everleaf-font-display);
+  --font-body: var(--everleaf-font-body);
+
+  /* -------------------------------------------------------
+     13. RESPONSIVE COMPONENT SIZING
+     Shared sizing rules for consistent UI components
+     ------------------------------------------------------- */
+
+  --component-height-sm: 2.5rem;
+  --component-height-md: 2.75rem;
+
+  --component-radius: 0.75rem;
+  --component-radius-card: 0.875rem;
+
+  --component-gap-mobile: 0.75rem;
+  --component-gap-desktop: 1.25rem;
+
+  --page-padding-mobile: 1rem;
+  --page-padding-tablet: 1.5rem;
+  --page-padding-desktop: 2rem;
+
+  --card-padding-mobile: 0.625rem;
+  --card-padding-desktop: 1rem;
+}
