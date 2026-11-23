@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 
 export const ROUTES = {
+  // Main application
   DASHBOARD: '/',
   LIBRARY: '/library',
   EXPLORE: '/explore',
@@ -19,6 +20,14 @@ export const ROUTES = {
   STATISTICS: '/statistics',
   WISHLIST: '/wishlist',
   SETTINGS: '/settings',
+  PROFILE: '/profile',
+
+  // Authentication
+  SIGN_UP: '/signup',
+  LOGIN: '/login',
+  FORGOT_PASSWORD: '/forgot-password',
+  RESET_PASSWORD: '/reset-password',
+  VERIFY_EMAIL: '/verify-email',
 }
 
 export const NAVIGATION_ITEMS = [
@@ -73,6 +82,7 @@ export const PAGE_TITLES = {
   [ROUTES.STATISTICS]: 'Statistics & Insights',
   [ROUTES.WISHLIST]: 'Wishlist',
   [ROUTES.SETTINGS]: 'Settings',
+  [ROUTES.PROFILE]: 'Profile',
 }
 
 export const getPageTitle = (pathname) => {

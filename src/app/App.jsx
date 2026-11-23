@@ -1,11 +1,16 @@
-import AppLayout from '../components/layout/AppLayout'
+import AppRoutes from '../routes/AppRoutes'
+import { AuthProvider } from '../context/AuthContext'
 import useTheme from '../hooks/useTheme'
 
 function App() {
-  // Apply the saved Redux theme when the application mounts and keep it in sync.
+  // Preserve the existing Redux-backed theme behavior.
   useTheme()
 
-  return <AppLayout />
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
+  )
 }
 
 export default App

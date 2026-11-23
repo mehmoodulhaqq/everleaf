@@ -1,3 +1,4 @@
+
 import {
   APP_DATA_VERSION,
   BOOK_STATUS,
@@ -150,14 +151,24 @@ const normalizePreferences = (value) => {
   }
 }
 
+/**
+ * Removes all known Everleaf storage keys.
+ * Continues attempting removal even if an individual operation fails.
+ * Returns false if any removal operation fails.
+ */
 const clearKeys = (storage) => {
+  let succeeded = true
+
   Object.values(STORAGE_KEYS).forEach((key) => {
     try {
       storage.removeItem(key)
     } catch {
       // Continue clearing the remaining keys if one operation fails.
+      succeeded = false
     }
   })
+
+  return succeeded
 }
 
 /**
@@ -235,15 +246,11 @@ export const savePersistedState = (state) => {
 /**
  * Removes all Everleaf-owned local data without touching unrelated
  * localStorage entries belonging to other websites or applications.
+ * Returns false if storage is unavailable or any removal fails.
  */
 export const clearPersistedState = () => {
   const storage = getStorage()
   if (!storage) return false
 
-  try {
-    clearKeys(storage)
-    return true
-  } catch {
-    return false
-  }
+  return clearKeys(storage)
 }
