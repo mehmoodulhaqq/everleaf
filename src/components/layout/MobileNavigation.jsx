@@ -4,12 +4,17 @@ import { MoreHorizontal } from 'lucide-react'
 
 import { NAVIGATION_ITEMS } from '../../routes/routeConfig'
 
-const MOBILE_NAV_PATHS = ['/', '/library', '/explore', '/tracker']
+const MOBILE_NAV_PATHS = [
+  '/dashboard',
+  '/library',
+  '/explore',
+  '/tracker',
+]
 
 const MORE_NAV_PATHS = ['/wishlist', '/goals', '/statistics', '/settings']
 
 const MOBILE_LABELS = {
-  '/': 'Home',
+  '/dashboard': 'Home',
   '/library': 'Library',
   '/explore': 'Explore',
   '/tracker': 'Tracker',
