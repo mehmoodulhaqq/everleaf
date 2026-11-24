@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -148,26 +149,10 @@ function BookDetails() {
   const [quotePage, setQuotePage] = useState('')
   const [quoteError, setQuoteError] = useState('')
 
-  const [previousBook, setPreviousBook] = useState(() => ({
-    id: book?.id,
-    currentPage: book?.currentPage,
-    notes: book?.notes,
-  }))
-
-  if (
-    previousBook.id !== book?.id ||
-    previousBook.currentPage !== book?.currentPage ||
-    previousBook.notes !== book?.notes
-  ) {
-    setPreviousBook({
-      id: book?.id,
-      currentPage: book?.currentPage,
-      notes: book?.notes,
-    })
-
+  useEffect(() => {
     setProgressInput(String(book?.currentPage ?? 0))
     setNotesInput(book?.notes ?? '')
-  }
+  }, [book?.id, book?.currentPage, book?.notes])
 
   const bookSessions = useMemo(() => {
     return sortSessionsByDate(

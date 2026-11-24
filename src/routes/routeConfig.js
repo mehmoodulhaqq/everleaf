@@ -1,3 +1,4 @@
+
 import {
   House,
   BookOpen,
@@ -6,11 +7,13 @@ import {
   Target,
   ChartNoAxesCombined,
   Heart,
+  UserRound,
   Settings,
 } from 'lucide-react'
 
 export const ROUTES = {
-  DASHBOARD: '/',
+  // Main application
+  DASHBOARD: '/dashboard',
   LIBRARY: '/library',
   EXPLORE: '/explore',
   BOOK_DETAILS: '/books/:bookId',
@@ -18,7 +21,15 @@ export const ROUTES = {
   GOALS: '/goals',
   STATISTICS: '/statistics',
   WISHLIST: '/wishlist',
+  PROFILE: '/profile',
   SETTINGS: '/settings',
+
+  // Authentication
+  SIGN_UP: '/signup',
+  LOGIN: '/login',
+  FORGOT_PASSWORD: '/forgot-password',
+  RESET_PASSWORD: '/reset-password',
+  VERIFY_EMAIL: '/verify-email',
 }
 
 export const NAVIGATION_ITEMS = [
@@ -58,6 +69,11 @@ export const NAVIGATION_ITEMS = [
     icon: Heart,
   },
   {
+    label: 'Profile',
+    path: ROUTES.PROFILE,
+    icon: UserRound,
+  },
+  {
     label: 'Settings',
     path: ROUTES.SETTINGS,
     icon: Settings,
@@ -72,6 +88,7 @@ export const PAGE_TITLES = {
   [ROUTES.GOALS]: 'Reading Goals',
   [ROUTES.STATISTICS]: 'Statistics & Insights',
   [ROUTES.WISHLIST]: 'Wishlist',
+  [ROUTES.PROFILE]: 'Profile',
   [ROUTES.SETTINGS]: 'Settings',
 }
 

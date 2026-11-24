@@ -1,4 +1,5 @@
-import { useState } from 'react'
+
+import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Leaf, Menu, X } from 'lucide-react'
 
@@ -11,6 +12,22 @@ function Topbar() {
     setIsMenuOpen(false)
   }
 
+  useEffect(() => {
+    if (!isMenuOpen) return
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        closeMenu()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isMenuOpen])
+
   return (
     <>
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-surface/95 px-4 backdrop-blur-md sm:px-6 lg:static lg:justify-end lg:px-8">
@@ -20,6 +37,7 @@ function Topbar() {
           onClick={() => setIsMenuOpen(true)}
           aria-label="Open navigation menu"
           aria-expanded={isMenuOpen}
+          aria-controls="everleaf-mobile-navigation"
           className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-surface-secondary hover:text-text-primary focus-visible:outline-2 focus-visible:outline-focus lg:hidden"
         >
           <Menu className="h-5 w-5" />
@@ -35,22 +53,25 @@ function Topbar() {
         </div>
       </header>
 
-      {/* Mobile navigation overlay */}
+      {/* Mobile navigation backdrop */}
       {isMenuOpen && (
-        <div
-          className="fixed inset-0 z-[99] bg-black/40 lg:hidden"
+        <button
+          type="button"
+          className="fixed inset-0 z-[99] cursor-default bg-black/40 lg:hidden"
           onClick={closeMenu}
-          aria-hidden="true"
+          aria-label="Close navigation menu"
         />
       )}
 
       {/* Mobile navigation drawer */}
       <aside
+        id="everleaf-mobile-navigation"
         className={`fixed inset-y-0 left-0 z-[100] flex w-[280px] max-w-[85vw] flex-col bg-espresso text-ivory shadow-2xl transition-transform duration-300 ease-in-out lg:hidden ${
           isMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         aria-label="Mobile navigation"
         aria-hidden={!isMenuOpen}
+        inert={!isMenuOpen}
       >
         {/* Drawer brand */}
         <div className="flex h-14 items-center justify-between border-b border-white/10 px-6">

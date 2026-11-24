@@ -1,9 +1,9 @@
+import { Outlet } from 'react-router-dom'
+
 import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import MobileNavigation from './MobileNavigation'
 import PageContainer from './PageContainer'
-
-import AppRoutes from '../../routes/AppRoutes'
 
 function AppLayout() {
   return (
@@ -18,7 +18,7 @@ function AppLayout() {
 
         {/* Page content */}
         <PageContainer className="pb-28 lg:pb-8">
-          <AppRoutes />
+          <Outlet />
         </PageContainer>
       </div>
 

@@ -1,0 +1,53 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Confirm that the signed-in user owns this UID namespace.
+    function isOwner(userId) {
+      return request.auth != null
+        && request.auth.uid == userId;
+    }
+
+    // User account document: users/{uid}
+    match /users/{userId} {
+      allow read, create, update, delete: if isOwner(userId);
+    }
+
+    // Dedicated profile document: users/{uid}/profile/main
+    match /users/{userId}/profile/main {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Personal library books
+    match /users/{userId}/books/{bookId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Reading sessions
+    match /users/{userId}/readingSessions/{sessionId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Reading goals
+    match /users/{userId}/goals/{goalId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Wishlist items
+    match /users/{userId}/wishlist/{wishlistItemId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Account preferences
+    match /users/{userId}/preferences/main {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Deny all access to paths not explicitly permitted above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

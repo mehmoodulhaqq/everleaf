@@ -1,3 +1,4 @@
+
 import { BookOpen, Heart, Plus, SearchX } from 'lucide-react'
 
 import BookCover from '../../components/books/BookCover'
@@ -16,6 +17,7 @@ function ExploreResults({
   onRetry,
   onAddToLibrary,
   onAddToWishlist,
+  onViewDetails,
   hasSearched = false,
 }) {
   if (isLoading) {
@@ -69,15 +71,11 @@ function ExploreResults({
           </p>
         </div>
 
-        {source === 'Open Library' ? (
+        {source && (
           <span className="rounded-full bg-surface-secondary px-3 py-1.5 text-xs font-medium text-text-secondary">
-            Results from Open Library
+            Results from {source}
           </span>
-        ) : source === 'Google Books' ? (
-          <span className="rounded-full bg-surface-secondary px-3 py-1.5 text-xs font-medium text-text-secondary">
-            Results from Google Books
-          </span>
-        ) : null}
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
@@ -92,19 +90,30 @@ function ExploreResults({
               className="flex h-full flex-col rounded-xl border border-border bg-surface p-3 shadow-sm transition-all duration-200 hover:border-border-strong hover:shadow-md sm:rounded-2xl sm:p-4"
             >
               <div className="flex gap-3 sm:gap-4">
-                <div className="w-24 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onViewDetails?.(book)}
+                  aria-label={`View details for ${book.title}`}
+                  className="w-24 shrink-0 cursor-pointer rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                >
                   <BookCover
                     src={book.coverUrl}
                     title={book.title}
                     author={book.author}
                     className="max-h-36 sm:max-h-40"
                   />
-                </div>
+                </button>
 
                 <div className="min-w-0 flex-1">
-                  <h3 className="line-clamp-3 font-display text-base font-semibold leading-snug text-text-primary">
-                    {book.title}
-                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => onViewDetails?.(book)}
+                    className="cursor-pointer text-left focus-visible:outline-none focus-visible:underline"
+                  >
+                    <h3 className="line-clamp-3 font-display text-base font-semibold leading-snug text-text-primary hover:text-primary">
+                      {book.title}
+                    </h3>
+                  </button>
 
                   <p className="mt-1 line-clamp-2 text-sm text-text-secondary">
                     {book.author}

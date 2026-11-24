@@ -5,6 +5,10 @@ import { BrowserRouter } from 'react-router-dom'
 
 import App from './app/App.jsx'
 import store from './app/store'
+
+// Initialize Firebase before mounting the application.
+import './lib/firebase.js'
+
 import './styles/index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
