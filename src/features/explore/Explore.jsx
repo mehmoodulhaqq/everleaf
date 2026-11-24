@@ -1,3 +1,4 @@
+
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Search } from 'lucide-react'
@@ -8,7 +9,10 @@ import useAppSelector from '../../hooks/useAppSelector'
 import { addBook } from '../../store/slices/booksSlice'
 import { addToWishlist } from '../../store/slices/wishlistSlice'
 
-import { useSearchBooksQuery } from '../../store/api/bookCatalogApi'
+import {
+  useSearchBooksQuery,
+  useGetBookDetailsQuery,
+} from '../../store/api/bookCatalogApi'
 
 import { createBookRecord } from '../../services/bookService'
 
@@ -20,6 +24,7 @@ import Select from '../../components/common/Select'
 import Button from '../../components/common/Button'
 import Modal from '../../components/common/Modal'
 import BookForm from '../../components/books/BookForm'
+import BookCover from '../../components/books/BookCover'
 
 import ExploreResults from './ExploreResults'
 
@@ -76,7 +81,10 @@ function Explore() {
   const [selectedCategory, setSelectedCategory] = useState('')
 
   const [selectedBook, setSelectedBook] = useState(null)
+  const [selectedDetailsBook, setSelectedDetailsBook] = useState(null)
+
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
   const hasSearched = Boolean(submittedQuery.trim() || selectedCategory)
@@ -96,6 +104,15 @@ function Explore() {
   const books = data?.items || []
   const catalogueSource = data?.source || null
 
+  const {
+    data: detailedBook,
+    isFetching: isLoadingDetails,
+  } = useGetBookDetailsQuery(selectedDetailsBook, {
+    skip: !isDetailsOpen || !selectedDetailsBook,
+  })
+
+  const displayBook = detailedBook || selectedDetailsBook
+
   const formInitialValues = useMemo(
     () => (selectedBook ? mapCatalogueBookToForm(selectedBook) : undefined),
     [selectedBook],
@@ -104,6 +121,16 @@ function Explore() {
   const openCatalogueBook = (book) => {
     setSelectedBook(book)
     setIsFormOpen(true)
+  }
+
+  const openBookDetails = (book) => {
+    setSelectedDetailsBook(book)
+    setIsDetailsOpen(true)
+  }
+
+  const closeBookDetails = () => {
+    setIsDetailsOpen(false)
+    setSelectedDetailsBook(null)
   }
 
   const openManualEntry = () => {
@@ -244,9 +271,170 @@ function Explore() {
         onRetry={refetch}
         onAddToLibrary={openCatalogueBook}
         onAddToWishlist={handleAddToWishlist}
+        onViewDetails={openBookDetails}
         hasSearched={hasSearched}
       />
 
+      {/* Book Details Popup */}
+      <Modal
+        open={isDetailsOpen}
+        onClose={closeBookDetails}
+        title="Book Details"
+        size="lg"
+      >
+        {displayBook && (
+          <div className="space-y-5">
+            {isLoadingDetails && (
+              <p className="text-sm text-text-muted">
+                Loading additional book information...
+              </p>
+            )}
+
+            <div className="flex flex-col gap-5 sm:flex-row">
+              <div className="w-36 shrink-0">
+                <BookCover
+                  src={displayBook.coverUrl}
+                  title={displayBook.title}
+                  author={displayBook.author}
+                  className="max-h-56"
+                />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <h2 className="font-display text-xl font-semibold text-text-primary">
+                  {displayBook.title || 'Untitled book'}
+                </h2>
+
+                {displayBook.subtitle && (
+                  <p className="mt-1 text-sm text-text-secondary">
+                    {displayBook.subtitle}
+                  </p>
+                )}
+
+                <p className="mt-2 text-sm text-text-secondary">
+                  {displayBook.author || 'Unknown author'}
+                </p>
+
+                {displayBook.averageRating > 0 && (
+                  <p className="mt-3 text-sm text-text-secondary">
+                    ★ {displayBook.averageRating.toFixed(1)}
+                    {displayBook.ratingsCount > 0 &&
+                      ` (${displayBook.ratingsCount} ratings)`}
+                  </p>
+                )}
+
+                {displayBook.genre &&
+                  displayBook.genre !== 'Uncategorized' && (
+                    <p className="mt-3 text-sm text-text-secondary">
+                      Genre: {displayBook.genre}
+                    </p>
+                  )}
+
+                {displayBook.publishedDate && (
+                  <p className="mt-2 text-sm text-text-secondary">
+                    Published: {displayBook.publishedDate}
+                  </p>
+                )}
+
+                {displayBook.publisher && (
+                  <p className="mt-2 text-sm text-text-secondary">
+                    Publisher: {displayBook.publisher}
+                  </p>
+                )}
+
+                {displayBook.totalPages > 0 && (
+                  <p className="mt-2 text-sm text-text-secondary">
+                    {displayBook.totalPages} pages
+                  </p>
+                )}
+
+                {displayBook.language && (
+                  <p className="mt-2 text-sm text-text-secondary">
+                    Language: {displayBook.language}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t border-border pt-4">
+              <h3 className="font-display text-base font-semibold text-text-primary">
+                About this book
+              </h3>
+
+              <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-text-secondary">
+                {displayBook.description ||
+                  'No description is currently available for this book.'}
+              </p>
+            </div>
+
+            {(displayBook.isbn13 || displayBook.isbn10) && (
+              <p className="text-sm text-text-secondary">
+                ISBN: {displayBook.isbn13 || displayBook.isbn10}
+              </p>
+            )}
+
+            {displayBook.categories?.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-text-primary">
+                  Categories
+                </h3>
+
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {displayBook.categories.map((category) => (
+                    <span
+                      key={category}
+                      className="rounded-full bg-surface-secondary px-3 py-1 text-xs text-text-secondary"
+                    >
+                      {category}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {displayBook.infoLink && (
+              <a
+                href={displayBook.infoLink}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-block text-sm font-medium text-primary hover:underline"
+              >
+                More information about this book
+              </a>
+            )}
+
+            {displayBook.previewLink && (
+              <a
+                href={displayBook.previewLink}
+                target="_blank"
+                rel="noreferrer"
+                className="ml-4 inline-block text-sm font-medium text-primary hover:underline"
+              >
+                Preview book
+              </a>
+            )}
+
+            <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+              <Button variant="outline" onClick={closeBookDetails}>
+                Close
+              </Button>
+
+              <Button
+                leftIcon={<Plus className="h-4 w-4" />}
+                onClick={() => {
+                  const book = displayBook
+                  closeBookDetails()
+                  openCatalogueBook(book)
+                }}
+              >
+                Add to library
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Add to Library / Manual Entry Popup */}
       <Modal
         open={isFormOpen}
         onClose={closeForm}

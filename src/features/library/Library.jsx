@@ -1,3 +1,4 @@
+
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -40,7 +41,9 @@ import BookList from '../../components/books/BookList'
 
 const FILTER_STATUS_OPTIONS = [
   { value: 'all', label: 'All statuses' },
-  ...BOOK_STATUS_OPTIONS,
+  ...BOOK_STATUS_OPTIONS.filter(
+    (option) => option.value !== 'want-to-read',
+  ),
 ]
 
 function createId() {
@@ -72,7 +75,21 @@ function Library() {
   const [bookToDelete, setBookToDelete] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
 
-  const genres = useMemo(() => getBookGenres(books), [books])
+  // Only currently reading and completed books belong in Library.
+  const libraryBooks = useMemo(
+    () =>
+      books.filter(
+        (book) =>
+          book.status === 'reading' ||
+          book.status === 'completed',
+      ),
+    [books],
+  )
+
+  const genres = useMemo(
+    () => getBookGenres(libraryBooks),
+    [libraryBooks],
+  )
 
   const genreOptions = useMemo(
     () => [
@@ -83,9 +100,33 @@ function Library() {
   )
 
   const visibleBooks = useMemo(() => {
-    const filtered = filterBooks(books, { query, status, genre })
+    const filtered = filterBooks(libraryBooks, { query, status, genre })
     return sortBooks(filtered, sortBy, sortDirection)
-  }, [books, query, status, genre, sortBy, sortDirection])
+  }, [libraryBooks, query, status, genre, sortBy, sortDirection])
+
+  // Separate books into their respective sections.
+  const currentlyReadingBooks = useMemo(
+    () => visibleBooks.filter((book) => book.status === 'reading'),
+    [visibleBooks],
+  )
+
+  const completedBooks = useMemo(
+    () => visibleBooks.filter((book) => book.status === 'completed'),
+    [visibleBooks],
+  )
+
+  const bookSections = [
+    {
+      title: 'Currently Reading',
+      description: 'Books you are currently reading.',
+      books: currentlyReadingBooks,
+    },
+    {
+      title: 'Completed',
+      description: 'Books you have finished reading.',
+      books: completedBooks,
+    },
+  ]
 
   const hasActiveFilters =
     query.trim() !== '' || status !== 'all' || genre !== 'all'
@@ -267,7 +308,7 @@ function Library() {
               <strong className="text-text-primary">
                 {visibleBooks.length}
               </strong>{' '}
-              of <strong className="text-text-primary">{books.length}</strong>{' '}
+              of <strong className="text-text-primary">{libraryBooks.length}</strong>{' '}
               books
             </p>
           </div>
@@ -349,9 +390,9 @@ function Library() {
         </div>
       </section>
 
-      {/* Books */}
-      <div className="mt-4 sm:mt-6">
-        {books.length === 0 ? (
+      {/* Books grouped by reading status */}
+      <div className="mt-4 space-y-8 sm:mt-6 sm:space-y-10">
+        {libraryBooks.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-10 text-center sm:rounded-2xl sm:px-6 sm:py-16">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-sand/60 sm:h-16 sm:w-16 sm:rounded-2xl">
               <BookPlus className="h-6 w-6 text-walnut sm:h-8 sm:w-8" />
@@ -362,8 +403,8 @@ function Library() {
             </h2>
 
             <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-text-secondary sm:text-sm sm:leading-6">
-              Every great reading journey begins with a book. Add your first one
-              to start building your personal collection.
+              Add a currently reading or completed book to start building your
+              personal library. Books you want to read belong in your Wishlist.
             </p>
 
             <Button
@@ -397,18 +438,43 @@ function Library() {
               Clear filters
             </Button>
           </div>
-        ) : viewMode === BOOK_VIEW_MODES.GRID ? (
-          <BookGrid
-            books={visibleBooks}
-            onEditBook={openEditForm}
-            onDeleteBook={setBookToDelete}
-          />
         ) : (
-          <BookList
-            books={visibleBooks}
-            onEditBook={openEditForm}
-            onDeleteBook={setBookToDelete}
-          />
+          bookSections.map((section) => {
+            if (section.books.length === 0) return null
+
+            return (
+              <section key={section.title}>
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="font-display text-lg font-semibold text-text-primary sm:text-xl">
+                      {section.title}
+                    </h2>
+                    <p className="mt-1 text-xs text-text-secondary sm:text-sm">
+                      {section.description}
+                    </p>
+                  </div>
+
+                  <span className="rounded-full bg-sand/60 px-3 py-1 text-xs font-semibold text-walnut">
+                    {section.books.length}
+                  </span>
+                </div>
+
+                {viewMode === BOOK_VIEW_MODES.GRID ? (
+                  <BookGrid
+                    books={section.books}
+                    onEditBook={openEditForm}
+                    onDeleteBook={setBookToDelete}
+                  />
+                ) : (
+                  <BookList
+                    books={section.books}
+                    onEditBook={openEditForm}
+                    onDeleteBook={setBookToDelete}
+                  />
+                )}
+              </section>
+            )
+          })
         )}
       </div>
 
