@@ -13,7 +13,7 @@ import {
 
 export const ROUTES = {
   // Main application
-  DASHBOARD: '/',
+  DASHBOARD: '/dashboard',
   LIBRARY: '/library',
   EXPLORE: '/explore',
   BOOK_DETAILS: '/books/:bookId',

@@ -86,11 +86,14 @@ function Profile() {
 
   const [hasPhotoError, setHasPhotoError] = useState(false)
 
-  // Load the profile without changing the page structure.
+  // Load the profile and handle authentication changes.
   useEffect(() => {
     if (authLoading) return
 
     if (!user) {
+      // Do not redirect to Login during an intentional sign-out.
+      if (isSigningOut) return
+
       navigate(ROUTES.LOGIN, { replace: true })
       return
     }
@@ -133,7 +136,7 @@ function Profile() {
     return () => {
       isActive = false
     }
-  }, [user, authLoading, navigate])
+  }, [user, authLoading, navigate, isSigningOut])
 
   const currentDisplayName = displayName || user?.displayName || ''
 
@@ -245,14 +248,14 @@ function Profile() {
     }
   }
 
-  // Sign out.
+  // Sign out and return to the Landing Page.
   async function handleSignOut() {
     setGeneralError('')
     setIsSigningOut(true)
 
     try {
       await signOutUser()
-      navigate(ROUTES.LOGIN, { replace: true })
+      navigate('/', { replace: true })
     } catch (error) {
       setGeneralError(getProfileErrorMessage(error))
       setIsSigningOut(false)
@@ -522,14 +525,14 @@ function Profile() {
 
           <div className="flex w-full justify-end">
             <Button
-  type="button"
-  variant="danger"
-  disabled={isSigningOut}
-  onClick={handleSignOut}
->
-  <LogOut size={16} />
-  {isSigningOut ? 'Signing out...' : 'Sign out'}
-</Button>
+              type="button"
+              variant="danger"
+              disabled={isSigningOut}
+              onClick={handleSignOut}
+            >
+              <LogOut size={16} />
+              {isSigningOut ? 'Signing out...' : 'Sign out'}
+            </Button>
           </div>
         </section>
 
