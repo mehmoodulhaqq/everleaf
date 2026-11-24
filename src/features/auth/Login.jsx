@@ -137,6 +137,11 @@ function Login() {
     }
   }
 
+  // Continue browsing without creating or signing into an account.
+  const handleContinueAsGuest = () => {
+    navigate(ROUTES.EXPLORE, { replace: true })
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10 sm:px-6">
       <div className="w-full max-w-md">
@@ -267,6 +272,19 @@ function Login() {
               Sign in
             </Button>
           </form>
+
+          {/* Continue as Guest */}
+          <div className="mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              fullWidth
+              size="lg"
+              onClick={handleContinueAsGuest}
+            >
+              Continue as Guest
+            </Button>
+          </div>
 
           <div className="my-6 border-t border-border" />
 

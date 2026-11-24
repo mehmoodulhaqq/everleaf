@@ -1,3 +1,4 @@
+
 import {
   House,
   BookOpen,
@@ -6,6 +7,7 @@ import {
   Target,
   ChartNoAxesCombined,
   Heart,
+  UserRound,
   Settings,
 } from 'lucide-react'
 
@@ -19,8 +21,8 @@ export const ROUTES = {
   GOALS: '/goals',
   STATISTICS: '/statistics',
   WISHLIST: '/wishlist',
-  SETTINGS: '/settings',
   PROFILE: '/profile',
+  SETTINGS: '/settings',
 
   // Authentication
   SIGN_UP: '/signup',
@@ -67,6 +69,11 @@ export const NAVIGATION_ITEMS = [
     icon: Heart,
   },
   {
+    label: 'Profile',
+    path: ROUTES.PROFILE,
+    icon: UserRound,
+  },
+  {
     label: 'Settings',
     path: ROUTES.SETTINGS,
     icon: Settings,
@@ -81,8 +88,8 @@ export const PAGE_TITLES = {
   [ROUTES.GOALS]: 'Reading Goals',
   [ROUTES.STATISTICS]: 'Statistics & Insights',
   [ROUTES.WISHLIST]: 'Wishlist',
-  [ROUTES.SETTINGS]: 'Settings',
   [ROUTES.PROFILE]: 'Profile',
+  [ROUTES.SETTINGS]: 'Settings',
 }
 
 export const getPageTitle = (pathname) => {

@@ -1,7 +1,6 @@
+
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeft,
   Camera,
   CheckCircle2,
   LogOut,
@@ -9,108 +8,119 @@ import {
   Save,
   UserRound,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
+import PageHeader from '../../components/common/PageHeader'
 import Button from '../../components/common/Button'
 import Input from '../../components/common/Input'
+
 import { useAuth } from '../../context/AuthContext'
 import {
   getUserProfile,
+  requestEmailChange,
   signOutUser,
   updateUserProfile,
 } from '../../services/authService'
+
 import { ROUTES } from '../../routes/routeConfig'
 
-function getInitials(name) {
-  const parts = name?.trim().split(/\s+/).filter(Boolean) || []
+function getInitials(name = '') {
+  const words = name.trim().split(/\s+/).filter(Boolean)
 
-  return (
-    parts
-      .slice(0, 2)
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase() || 'U'
-  )
+  if (!words.length) return 'U'
+
+  return words
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase()
 }
 
 function getProfileErrorMessage(error) {
   const messages = {
+    'auth/wrong-password': 'Your password is incorrect.',
+    'auth/invalid-credential': 'Your credentials are incorrect.',
     'auth/requires-recent-login':
-      'For security, please sign out and sign in again before changing your profile.',
+      'Please sign in again before performing this action.',
+    'auth/email-already-in-use':
+      'This email address is already being used.',
+    'auth/invalid-email': 'Please enter a valid email address.',
     'auth/network-request-failed':
       'Network error. Please check your internet connection.',
-    'permission-denied':
-      'Firestore denied the profile update. Check that the published security rules allow this signed-in user to update their own profile.',
-    'auth/profile-sync-failed':
-      'Your Firebase profile was updated, but Everleaf could not sync the profile document. Please try saving again.',
-    unauthenticated:
-      'Your session has expired. Please sign in again.',
+    'auth/too-many-requests':
+      'Too many attempts. Please try again later.',
+    'auth/user-not-found':
+      'Your account could not be found.',
+    'auth/popup-closed-by-user':
+      'The authentication window was closed.',
+    'auth/popup-blocked':
+      'Your browser blocked the authentication popup.',
   }
 
   return (
     messages[error?.code] ||
     error?.message ||
-    'We could not complete that profile action. Please try again.'
+    'Something went wrong. Please try again.'
   )
 }
 
 function Profile() {
   const navigate = useNavigate()
-  const { user, loading: authLoading, authError } = useAuth()
+  const { user, authLoading } = useAuth()
 
   const [displayName, setDisplayName] = useState('')
   const [photoURL, setPhotoURL] = useState('')
-  const [hasPhotoError, setHasPhotoError] = useState(false)
+  const [newEmail, setNewEmail] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
 
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
+  const [isSavingProfile, setIsSavingProfile] = useState(false)
+  const [isChangingEmail, setIsChangingEmail] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
 
-  const [successMessage, setSuccessMessage] = useState('')
-  const [errorMessage, setErrorMessage] = useState('')
+  const [profileMessage, setProfileMessage] = useState('')
+  const [profileError, setProfileError] = useState('')
+  const [emailMessage, setEmailMessage] = useState('')
+  const [emailError, setEmailError] = useState('')
+  const [generalError, setGeneralError] = useState('')
 
+  const [hasPhotoError, setHasPhotoError] = useState(false)
+
+  // Load the profile without changing the page structure.
   useEffect(() => {
-    if (authLoading) {
-      return undefined
-    }
-
-    if (authError) {
-      setErrorMessage(
-        'We could not verify your account. Please refresh the page and try again.',
-      )
-      setIsLoadingProfile(false)
-      return undefined
-    }
+    if (authLoading) return
 
     if (!user) {
       navigate(ROUTES.LOGIN, { replace: true })
-      return undefined
+      return
     }
 
     let isActive = true
 
-    async function loadProfile() {
-      setIsLoadingProfile(true)
-      setErrorMessage('')
+    // Display Firebase Auth data immediately.
+    setDisplayName(user.displayName || '')
+    setPhotoURL(user.photoURL || '')
+    setIsLoadingProfile(true)
 
+    async function loadProfile() {
       try {
-        const savedProfile = await getUserProfile()
+        const profile = await getUserProfile()
 
         if (!isActive) return
 
         setDisplayName(
-          savedProfile?.displayName || user.displayName || '',
+          profile?.displayName || user.displayName || ''
         )
-        setPhotoURL(savedProfile?.photoURL || user.photoURL || '')
-        setHasPhotoError(false)
+
+        setPhotoURL(profile?.photoURL || user.photoURL || '')
       } catch (error) {
         console.error('Profile loading error:', error)
 
-        if (isActive) {
-          setDisplayName(user.displayName || '')
-          setPhotoURL(user.photoURL || '')
-          setHasPhotoError(false)
-          setErrorMessage(getProfileErrorMessage(error))
-        }
+        if (!isActive) return
+
+        // Firebase Auth data is still available as a fallback.
+        setDisplayName(user.displayName || '')
+        setPhotoURL(user.photoURL || '')
       } finally {
         if (isActive) {
           setIsLoadingProfile(false)
@@ -123,269 +133,408 @@ function Profile() {
     return () => {
       isActive = false
     }
-  }, [authError, authLoading, user, navigate])
+  }, [user, authLoading, navigate])
 
-  const handleSave = async (event) => {
+  const currentDisplayName = displayName || user?.displayName || ''
+
+  const currentPhotoURL = photoURL || user?.photoURL || ''
+
+  const currentEmail = user?.email || ''
+
+  const isGoogleUser = user?.providerData?.some(
+    (provider) => provider.providerId === 'google.com'
+  )
+
+  const isPasswordUser = user?.providerData?.some(
+    (provider) => provider.providerId === 'password'
+  )
+
+  // Save name and photo.
+  async function handleSaveProfile(event) {
     event.preventDefault()
 
-    setSuccessMessage('')
-    setErrorMessage('')
+    setProfileMessage('')
+    setProfileError('')
 
-    const normalizedName = displayName.trim()
-    const normalizedPhotoURL = photoURL.trim()
+    const trimmedName = displayName.trim()
 
-    if (normalizedName.length < 2) {
-      setErrorMessage('Your name must contain at least 2 characters.')
+    if (trimmedName.length < 2) {
+      setProfileError('Name must contain at least 2 characters.')
       return
     }
 
-    if (normalizedPhotoURL) {
+    if (photoURL.trim()) {
       try {
-        const parsedURL = new URL(normalizedPhotoURL)
+        const parsedURL = new URL(photoURL.trim())
 
         if (!['http:', 'https:'].includes(parsedURL.protocol)) {
-          throw new Error('Unsupported image URL protocol.')
+          setProfileError(
+            'Profile photo must be a valid HTTP or HTTPS URL.'
+          )
+          return
         }
       } catch {
-        setErrorMessage(
-          'Please enter a valid image URL beginning with https:// or http://.',
-        )
+        setProfileError('Please enter a valid profile photo URL.')
         return
       }
     }
 
-    setIsSaving(true)
+    setIsSavingProfile(true)
 
     try {
       await updateUserProfile({
-        displayName: normalizedName,
-        photoURL: normalizedPhotoURL || null,
+        displayName: trimmedName,
+        photoURL: photoURL.trim(),
       })
 
-      setDisplayName(normalizedName)
-      setPhotoURL(normalizedPhotoURL)
+      setDisplayName(trimmedName)
+      setPhotoURL(photoURL.trim())
       setHasPhotoError(false)
-      setSuccessMessage('Your profile has been updated successfully.')
+
+      setProfileMessage('Profile updated successfully.')
     } catch (error) {
-      console.error('Profile update error:', error)
-      setErrorMessage(getProfileErrorMessage(error))
+      setProfileError(getProfileErrorMessage(error))
     } finally {
-      setIsSaving(false)
+      setIsSavingProfile(false)
     }
   }
 
-  const handleSignOut = async () => {
-    setErrorMessage('')
-    setSuccessMessage('')
+  // Request email change.
+  async function handleEmailChange(event) {
+    event.preventDefault()
+
+    setEmailMessage('')
+    setEmailError('')
+
+    const normalizedEmail = newEmail.trim().toLowerCase()
+
+    if (!normalizedEmail) {
+      setEmailError('Please enter your new email address.')
+      return
+    }
+
+    if (normalizedEmail === currentEmail.toLowerCase()) {
+      setEmailError('This is already your current email address.')
+      return
+    }
+
+    if (isPasswordUser && !currentPassword) {
+      setEmailError('Please enter your current password.')
+      return
+    }
+
+    setIsChangingEmail(true)
+
+    try {
+      await requestEmailChange({
+        newEmail: normalizedEmail,
+        password: currentPassword,
+      })
+
+      setEmailMessage(
+        `Verification email sent to ${normalizedEmail}. ` +
+        'Follow the instructions in that email to complete your change.'
+      )
+
+      setNewEmail('')
+      setCurrentPassword('')
+    } catch (error) {
+      setEmailError(getProfileErrorMessage(error))
+    } finally {
+      setIsChangingEmail(false)
+    }
+  }
+
+  // Sign out.
+  async function handleSignOut() {
+    setGeneralError('')
     setIsSigningOut(true)
 
     try {
       await signOutUser()
       navigate(ROUTES.LOGIN, { replace: true })
     } catch (error) {
-      console.error('Profile sign-out error:', error)
-      setErrorMessage(getProfileErrorMessage(error))
+      setGeneralError(getProfileErrorMessage(error))
       setIsSigningOut(false)
     }
   }
 
-  if (authLoading || isLoadingProfile) {
-    return (
-      <main
-        className="flex min-h-[60vh] items-center justify-center"
-        role="status"
-        aria-live="polite"
-        aria-busy="true"
-      >
-        <div className="text-center">
-          <div className="mx-auto mb-3 h-9 w-9 animate-spin rounded-full border-4 border-border border-t-caramel" />
-          <p className="text-sm text-text-secondary">
-            Loading your profile...
-          </p>
-        </div>
-      </main>
-    )
-  }
-
-  if (authError) {
-    return (
-      <main className="mx-auto w-full max-w-3xl">
-        <div
-          className="rounded-xl border border-danger/20 bg-danger/5 p-5 text-sm text-danger"
-          role="alert"
-        >
-          {errorMessage}
-        </div>
-      </main>
-    )
-  }
-
-  if (!user) {
+  // Wait for authentication initialization only.
+  // No profile-loading spinner and no changing page wrapper.
+  if (authLoading || !user) {
     return null
   }
 
-  const showPhoto = Boolean(photoURL) && !hasPhotoError
-
   return (
-    <main className="mx-auto w-full max-w-3xl">
-      <div className="mb-7">
-        <Link
-          to={ROUTES.DASHBOARD}
-          className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-text-secondary transition hover:text-text-primary"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Everleaf
-        </Link>
+    <div className="w-full min-w-0">
+      <PageHeader
+        title="Profile"
+        description="Manage your personal information and account."
+      />
 
-        <h1 className="font-display text-3xl font-semibold text-text-primary">
-          My Profile
-        </h1>
+      <div className="flex w-full min-w-0 flex-col gap-6">
 
-        <p className="mt-2 text-sm text-text-secondary">
-          Manage the personal details associated with your Everleaf account.
-        </p>
-      </div>
+        {/* Profile overview */}
+        <section className="w-full min-w-0 rounded-xl border border-border bg-surface p-4 shadow-sm sm:rounded-2xl sm:p-5">
+          <div className="flex w-full min-w-0 flex-col gap-5 sm:flex-row sm:items-center">
 
-      <section className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-        <div className="border-b border-border bg-surface-secondary px-6 py-8 sm:px-8">
-          <div className="flex flex-col items-center gap-4 sm:flex-row">
-            <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-surface bg-caramel/15">
-              {showPhoto ? (
+            {/* Avatar */}
+            <div className="relative flex shrink-0 items-center justify-center">
+              {currentPhotoURL && !hasPhotoError ? (
                 <img
-                  src={photoURL}
-                  alt="Your profile"
-                  className="h-full w-full object-cover"
+                  src={currentPhotoURL}
+                  alt="Profile"
+                  className="h-20 w-20 rounded-full object-cover"
                   onError={() => setHasPhotoError(true)}
                 />
               ) : (
-                <span className="font-display text-2xl font-semibold text-caramel">
-                  {getInitials(displayName)}
-                </span>
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-sand text-2xl font-semibold text-walnut">
+                  {getInitials(currentDisplayName)}
+                </div>
               )}
+
+              <div className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-surface bg-walnut text-white">
+                <Camera size={13} />
+              </div>
             </div>
 
-            <div className="text-center sm:text-left">
-              <h2 className="font-display text-xl font-semibold text-text-primary">
-                {displayName || 'Your name'}
+            {/* User information */}
+            <div className="min-w-0 flex-1">
+              <h2 className="break-words font-display text-xl font-semibold text-text-primary">
+                {currentDisplayName || 'Reader'}
               </h2>
-              <p className="mt-1 text-sm text-text-secondary">
-                {user.email}
+
+              <p className="mt-1 break-all text-sm text-text-secondary">
+                {currentEmail}
               </p>
-              <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-text-muted">
-                <Camera className="h-3.5 w-3.5" />
-                Personal account
+
+              <p className="mt-2 text-xs text-text-muted">
+                Your personal Everleaf account
+              </p>
+            </div>
+
+          </div>
+        </section>
+
+        {/* Personal information */}
+        <section className="w-full min-w-0 rounded-xl border border-border bg-surface p-4 shadow-sm sm:rounded-2xl sm:p-5">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sand text-walnut">
+              <UserRound size={18} />
+            </div>
+
+            <div className="min-w-0">
+              <h2 className="font-semibold text-text-primary">
+                Personal information
+              </h2>
+
+              <p className="text-sm text-text-secondary">
+                Update your name and profile photo.
               </p>
             </div>
           </div>
-        </div>
 
-        <form onSubmit={handleSave} className="space-y-6 p-6 sm:p-8">
-          <div>
-            <h3 className="font-semibold text-text-primary">
-              Personal information
-            </h3>
-            <p className="mt-1 text-sm text-text-secondary">
-              Update your name and profile picture.
+          <form
+            onSubmit={handleSaveProfile}
+            className="flex w-full min-w-0 flex-col gap-4"
+          >
+            <div className="w-full min-w-0">
+              <Input
+                id="displayName"
+                label="Full name"
+                type="text"
+                value={displayName}
+                onChange={(event) => {
+                  setDisplayName(event.target.value)
+                  setProfileMessage('')
+                  setProfileError('')
+                }}
+                placeholder="Enter your name"
+              />
+            </div>
+
+            <div className="w-full min-w-0">
+              <Input
+                id="photoURL"
+                label="Profile photo URL"
+                type="url"
+                value={photoURL}
+                onChange={(event) => {
+                  setPhotoURL(event.target.value)
+                  setHasPhotoError(false)
+                  setProfileMessage('')
+                  setProfileError('')
+                }}
+                placeholder="https://example.com/photo.jpg"
+              />
+
+              <p className="mt-1.5 text-xs text-text-muted">
+                Paste a publicly accessible image URL.
+              </p>
+            </div>
+
+            {profileError && (
+              <p className="text-sm text-red-600">
+                {profileError}
+              </p>
+            )}
+
+            {profileMessage && (
+              <p className="flex items-center gap-2 text-sm text-green-700">
+                <CheckCircle2 size={16} />
+                {profileMessage}
+              </p>
+            )}
+
+            <div className="flex w-full justify-end">
+              <Button
+                type="submit"
+                disabled={isSavingProfile || isLoadingProfile}
+              >
+                <Save size={16} />
+                {isSavingProfile ? 'Saving...' : 'Save changes'}
+              </Button>
+            </div>
+          </form>
+        </section>
+
+        {/* Change email */}
+        <section className="w-full min-w-0 rounded-xl border border-border bg-surface p-4 shadow-sm sm:rounded-2xl sm:p-5">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sand text-walnut">
+              <Mail size={18} />
+            </div>
+
+            <div className="min-w-0">
+              <h2 className="font-semibold text-text-primary">
+                Email address
+              </h2>
+
+              <p className="text-sm text-text-secondary">
+                Change the email associated with your account.
+              </p>
+            </div>
+          </div>
+
+          <div className="mb-4 min-w-0 rounded-lg bg-background p-3">
+            <p className="text-xs text-text-muted">
+              Current email
+            </p>
+
+            <p className="mt-1 break-all text-sm font-medium text-text-primary">
+              {currentEmail}
             </p>
           </div>
 
-          <Input
-            label="Full name"
-            name="displayName"
-            value={displayName}
-            onChange={(event) => {
-              setDisplayName(event.target.value)
-              setSuccessMessage('')
-              setErrorMessage('')
-            }}
-            placeholder="Enter your full name"
-            leadingIcon={<UserRound className="h-4 w-4" />}
-            autoComplete="name"
-            required
-            disabled={isSaving || isSigningOut}
-          />
-
-          <Input
-            label="Email address"
-            name="email"
-            type="email"
-            value={user.email || ''}
-            leadingIcon={<Mail className="h-4 w-4" />}
-            disabled
-            hint="Your email address is managed by Firebase Authentication and cannot be changed here."
-          />
-
-          <Input
-            label="Profile photo URL"
-            name="photoURL"
-            type="url"
-            value={photoURL}
-            onChange={(event) => {
-              setPhotoURL(event.target.value)
-              setHasPhotoError(false)
-              setSuccessMessage('')
-              setErrorMessage('')
-            }}
-            placeholder="https://example.com/your-photo.jpg"
-            leadingIcon={<Camera className="h-4 w-4" />}
-            hint="Use a publicly accessible image URL. Leave it empty to remove your photo."
-            disabled={isSaving || isSigningOut}
-          />
-
-          {successMessage && (
-            <div
-              role="status"
-              className="flex items-center gap-2 rounded-lg border border-success/20 bg-success/5 px-4 py-3 text-sm text-success"
-            >
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
-              {successMessage}
-            </div>
-          )}
-
-          {errorMessage && (
-            <div
-              role="alert"
-              className="rounded-lg border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger"
-            >
-              {errorMessage}
-            </div>
-          )}
-
-          <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">
-            <Button
-              type="submit"
-              fullWidth
-              size="lg"
-              loading={isSaving}
-              disabled={isSigningOut}
-              leftIcon={<Save className="h-4 w-4" />}
-            >
-              Save changes
-            </Button>
-          </div>
-        </form>
-
-        <div className="border-t border-border px-6 py-6 sm:px-8">
-          <h3 className="font-semibold text-text-primary">
-            Account
-          </h3>
-          <p className="mb-4 mt-1 text-sm text-text-secondary">
-            Sign out of your Everleaf account on this device.
-          </p>
-
-          <Button
-            type="button"
-            variant="danger"
-            onClick={handleSignOut}
-            loading={isSigningOut}
-            disabled={isSaving}
-            leftIcon={<LogOut className="h-4 w-4" />}
+          <form
+            onSubmit={handleEmailChange}
+            className="flex w-full min-w-0 flex-col gap-4"
           >
-            Sign out
-          </Button>
-        </div>
-      </section>
-    </main>
+            <div className="w-full min-w-0">
+              <Input
+                id="newEmail"
+                label="New email address"
+                type="email"
+                value={newEmail}
+                onChange={(event) => {
+                  setNewEmail(event.target.value)
+                  setEmailMessage('')
+                  setEmailError('')
+                }}
+                placeholder="Enter your new email"
+              />
+            </div>
+
+            {isPasswordUser && (
+              <div className="w-full min-w-0">
+                <Input
+                  id="currentPassword"
+                  label="Current password"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(event) => {
+                    setCurrentPassword(event.target.value)
+                    setEmailError('')
+                  }}
+                  placeholder="Enter your current password"
+                />
+              </div>
+            )}
+
+            {isGoogleUser && !isPasswordUser && (
+              <div className="rounded-lg bg-background p-3 text-sm text-text-secondary">
+                You'll be asked to reauthenticate using your Google
+                account before the email change is requested.
+              </div>
+            )}
+
+            {emailError && (
+              <p className="text-sm text-red-600">
+                {emailError}
+              </p>
+            )}
+
+            {emailMessage && (
+              <div className="rounded-lg border border-border bg-background p-3 text-sm text-text-secondary">
+                <div className="mb-1 flex items-center gap-2 text-green-700">
+                  <CheckCircle2 size={16} />
+                  <span className="font-medium">Request submitted</span>
+                </div>
+
+                {emailMessage}
+              </div>
+            )}
+
+            <div className="flex w-full justify-end">
+              <Button
+                type="submit"
+                disabled={isChangingEmail || !newEmail.trim()}
+              >
+                {isChangingEmail ? 'Sending...' : 'Change email'}
+              </Button>
+            </div>
+          </form>
+        </section>
+
+        {/* Account actions */}
+        <section className="w-full min-w-0 rounded-xl border border-border bg-surface p-4 shadow-sm sm:rounded-2xl sm:p-5">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sand text-walnut">
+              <LogOut size={18} />
+            </div>
+
+            <div className="min-w-0">
+              <h2 className="font-semibold text-text-primary">
+                Account
+              </h2>
+
+              <p className="text-sm text-text-secondary">
+                Sign out of your Everleaf account.
+              </p>
+            </div>
+          </div>
+
+          {generalError && (
+            <p className="mb-4 text-sm text-red-600">
+              {generalError}
+            </p>
+          )}
+
+          <div className="flex w-full justify-end">
+            <Button
+  type="button"
+  variant="danger"
+  disabled={isSigningOut}
+  onClick={handleSignOut}
+>
+  <LogOut size={16} />
+  {isSigningOut ? 'Signing out...' : 'Sign out'}
+</Button>
+          </div>
+        </section>
+
+      </div>
+    </div>
   )
 }
 

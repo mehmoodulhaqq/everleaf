@@ -11,6 +11,17 @@ import {
   WISHLIST_PRIORITIES,
 } from '../utils/constants'
 
+// Dedicated guest namespace.
+// Existing STORAGE_KEYS remain unchanged for compatibility.
+const GUEST_STORAGE_KEYS = {
+  BOOKS: 'everleaf_guest_books',
+  SESSIONS: 'everleaf_guest_sessions',
+  GOALS: 'everleaf_guest_goals',
+  WISHLIST: 'everleaf_guest_wishlist',
+  PREFERENCES: 'everleaf_guest_preferences',
+  APP_VERSION: 'everleaf_guest_version',
+}
+
 const getStorage = () => {
   if (typeof window === 'undefined') return null
 
@@ -21,12 +32,6 @@ const getStorage = () => {
   }
 }
 
-/**
- * Reads one storage entry while preserving the difference between:
- * - a missing key,
- * - valid JSON (including valid null),
- * - a present key containing malformed JSON.
- */
 const readJSON = (storage, key) => {
   try {
     const rawValue = storage.getItem(key)
@@ -113,16 +118,21 @@ const filterWishlist = (value) => {
 const normalizePositiveInteger = (value, fallback) => {
   const number = Number(value)
 
-  return Number.isFinite(number) ? Math.max(1, Math.floor(number)) : fallback
+  return Number.isFinite(number)
+    ? Math.max(1, Math.floor(number))
+    : fallback
 }
 
 const normalizePreferences = (value) => {
   const defaults = {
     theme: DEFAULT_THEME,
     reading: {
-      defaultDailyPageTarget: READING_PREFERENCES.DEFAULT_DAILY_PAGE_TARGET,
-      defaultMonthlyPageTarget: READING_PREFERENCES.DEFAULT_MONTHLY_PAGE_TARGET,
-      defaultAnnualBookTarget: READING_PREFERENCES.DEFAULT_ANNUAL_BOOK_TARGET,
+      defaultDailyPageTarget:
+        READING_PREFERENCES.DEFAULT_DAILY_PAGE_TARGET,
+      defaultMonthlyPageTarget:
+        READING_PREFERENCES.DEFAULT_MONTHLY_PAGE_TARGET,
+      defaultAnnualBookTarget:
+        READING_PREFERENCES.DEFAULT_ANNUAL_BOOK_TARGET,
     },
   }
 
@@ -151,19 +161,13 @@ const normalizePreferences = (value) => {
   }
 }
 
-/**
- * Removes all known Everleaf storage keys.
- * Continues attempting removal even if an individual operation fails.
- * Returns false if any removal operation fails.
- */
-const clearKeys = (storage) => {
+const clearKeys = (storage, keys) => {
   let succeeded = true
 
-  Object.values(STORAGE_KEYS).forEach((key) => {
+  Object.values(keys).forEach((key) => {
     try {
       storage.removeItem(key)
     } catch {
-      // Continue clearing the remaining keys if one operation fails.
       succeeded = false
     }
   })
@@ -172,42 +176,63 @@ const clearKeys = (storage) => {
 }
 
 /**
- * Loads and validates the saved application state.
- * A malformed or incompatible version marker invalidates the app-owned
- * saved data, so the known Everleaf keys are cleared rather than mixing
- * unknown data versions. Invalid individual collections safely become
- * empty collections; invalid preferences fall back to approved defaults.
+ * Loads guest data only.
+ * Authenticated account data must be loaded from Firestore,
+ * never from this localStorage namespace.
  */
-export const loadPersistedState = () => {
+export const loadPersistedState = (mode = 'guest') => {
+  if (mode !== 'guest') return undefined
+
   const storage = getStorage()
   if (!storage) return undefined
 
-  const savedVersion = readJSON(storage, STORAGE_KEYS.APP_VERSION)
+  const savedVersion = readJSON(
+    storage,
+    GUEST_STORAGE_KEYS.APP_VERSION,
+  )
 
   if (
     savedVersion.exists &&
     (!savedVersion.valid || savedVersion.value !== APP_DATA_VERSION)
   ) {
-    clearKeys(storage)
+    clearKeys(storage, GUEST_STORAGE_KEYS)
     return undefined
   }
 
-  const books = readJSON(storage, STORAGE_KEYS.BOOKS)
-  const sessions = readJSON(storage, STORAGE_KEYS.SESSIONS)
-  const goals = readJSON(storage, STORAGE_KEYS.GOALS)
-  const wishlist = readJSON(storage, STORAGE_KEYS.WISHLIST)
-  const preferences = readJSON(storage, STORAGE_KEYS.PREFERENCES)
+  const books = readJSON(storage, GUEST_STORAGE_KEYS.BOOKS)
+  const sessions = readJSON(storage, GUEST_STORAGE_KEYS.SESSIONS)
+  const goals = readJSON(storage, GUEST_STORAGE_KEYS.GOALS)
+  const wishlist = readJSON(storage, GUEST_STORAGE_KEYS.WISHLIST)
+  const preferences = readJSON(
+    storage,
+    GUEST_STORAGE_KEYS.PREFERENCES,
+  )
 
-  const savedEntries = [books, sessions, goals, wishlist, preferences]
+  const savedEntries = [
+    books,
+    sessions,
+    goals,
+    wishlist,
+    preferences,
+  ]
+
   const hasSavedData = savedEntries.some((entry) => entry.exists)
 
   if (!hasSavedData) return undefined
 
   return {
-    books: { items: filterBooks(books.valid ? books.value : null) },
-    sessions: { items: filterSessions(sessions.valid ? sessions.value : null) },
-    goals: { items: filterGoals(goals.valid ? goals.value : null) },
-    wishlist: { items: filterWishlist(wishlist.valid ? wishlist.value : null) },
+    books: {
+      items: filterBooks(books.valid ? books.value : null),
+    },
+    sessions: {
+      items: filterSessions(sessions.valid ? sessions.value : null),
+    },
+    goals: {
+      items: filterGoals(goals.valid ? goals.value : null),
+    },
+    wishlist: {
+      items: filterWishlist(wishlist.valid ? wishlist.value : null),
+    },
     preferences: normalizePreferences(
       preferences.valid ? preferences.value : null,
     ),
@@ -215,19 +240,24 @@ export const loadPersistedState = () => {
 }
 
 /**
- * Persists each Redux slice under its own approved storage key.
- * Returns false when browser storage is unavailable or a write fails.
+ * Saves only guest data.
+ * Authenticated data must be persisted through Firestore.
  */
-export const savePersistedState = (state) => {
+export const savePersistedState = (state, mode = 'guest') => {
+  if (mode !== 'guest') return false
+
   const storage = getStorage()
   if (!storage || !isRecord(state)) return false
 
   const entries = [
-    [STORAGE_KEYS.BOOKS, state.books?.items ?? []],
-    [STORAGE_KEYS.SESSIONS, state.sessions?.items ?? []],
-    [STORAGE_KEYS.GOALS, state.goals?.items ?? []],
-    [STORAGE_KEYS.WISHLIST, state.wishlist?.items ?? []],
-    [STORAGE_KEYS.PREFERENCES, state.preferences ?? normalizePreferences()],
+    [GUEST_STORAGE_KEYS.BOOKS, state.books?.items ?? []],
+    [GUEST_STORAGE_KEYS.SESSIONS, state.sessions?.items ?? []],
+    [GUEST_STORAGE_KEYS.GOALS, state.goals?.items ?? []],
+    [GUEST_STORAGE_KEYS.WISHLIST, state.wishlist?.items ?? []],
+    [
+      GUEST_STORAGE_KEYS.PREFERENCES,
+      state.preferences ?? normalizePreferences(),
+    ],
   ]
 
   try {
@@ -235,7 +265,10 @@ export const savePersistedState = (state) => {
       storage.setItem(key, JSON.stringify(value))
     })
 
-    storage.setItem(STORAGE_KEYS.APP_VERSION, JSON.stringify(APP_DATA_VERSION))
+    storage.setItem(
+      GUEST_STORAGE_KEYS.APP_VERSION,
+      JSON.stringify(APP_DATA_VERSION),
+    )
 
     return true
   } catch {
@@ -244,13 +277,18 @@ export const savePersistedState = (state) => {
 }
 
 /**
- * Removes all Everleaf-owned local data without touching unrelated
- * localStorage entries belonging to other websites or applications.
- * Returns false if storage is unavailable or any removal fails.
+ * Clears guest data only.
+ * It never removes authenticated Firestore data or unrelated
+ * localStorage entries.
  */
-export const clearPersistedState = () => {
+export const clearPersistedState = (mode = 'guest') => {
+  if (mode !== 'guest') return false
+
   const storage = getStorage()
   if (!storage) return false
 
-  return clearKeys(storage)
+  return clearKeys(storage, GUEST_STORAGE_KEYS)
 }
+
+// Expose guest keys for migration and other storage operations.
+export { GUEST_STORAGE_KEYS }

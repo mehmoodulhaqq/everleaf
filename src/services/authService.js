@@ -1,13 +1,18 @@
+
 import {
+  EmailAuthProvider,
   GoogleAuthProvider,
   confirmPasswordReset,
   createUserWithEmailAndPassword,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
   sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
   updateProfile,
+  verifyBeforeUpdateEmail,
   verifyPasswordResetCode,
 } from 'firebase/auth'
 
@@ -278,18 +283,41 @@ export async function completePasswordReset({ oobCode, newPassword } = {}) {
 
 /**
  * Read the signed-in user's root Firestore profile document.
+ * Refresh Firebase Auth first so a verified email change is reflected.
  */
 export async function getUserProfile() {
   const user = getCurrentUser()
-  const profileSnapshot = await getDoc(getUserDocumentRef(user.uid))
+
+  await user.reload()
+
+  const refreshedUser = getCurrentUser()
+  const profileRef = getUserDocumentRef(refreshedUser.uid)
+  const profileSnapshot = await getDoc(profileRef)
 
   if (!profileSnapshot.exists()) {
     return null
   }
 
+  const profileData = profileSnapshot.data()
+  const latestEmail = refreshedUser.email || ''
+
+  // Synchronize the verified email with Firestore.
+  if (profileData.email !== latestEmail) {
+    await setDoc(
+      profileRef,
+      {
+        email: latestEmail,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true },
+    )
+
+    profileData.email = latestEmail
+  }
+
   return {
     id: profileSnapshot.id,
-    ...profileSnapshot.data(),
+    ...profileData,
   }
 }
 
@@ -326,8 +354,8 @@ export async function updateUserProfile({
     throw new Error('There are no profile changes to save.')
   }
 
-  // Firebase Auth is updated first because it is the source of truth for
-  // displayName/photoURL. If the Firestore mirror fails, report that clearly.
+  // Firebase Auth is updated first because it is the source of truth
+  // for displayName and photoURL.
   await updateProfile(user, authUpdates)
 
   const profileUpdates = {
@@ -361,4 +389,62 @@ export async function updateUserProfile({
   }
 
   return user
+}
+
+/**
+ * Start a secure email-change process.
+ *
+ * Email/password users must provide their current password.
+ * Google users must reauthenticate through Google.
+ * Firebase sends a verification link to the new email address.
+ * The new email becomes active only after verification.
+ */
+export async function requestEmailChange({
+  newEmail,
+  password,
+} = {}) {
+  const user = getCurrentUser()
+  const normalizedEmail = normalizeEmail(newEmail)
+
+  if (!normalizedEmail) {
+    throw new Error('Please enter your new email address.')
+  }
+
+  if (normalizedEmail === user.email?.toLowerCase()) {
+    throw new Error('Your new email is the same as your current email.')
+  }
+
+  const providers = user.providerData.map(
+    (provider) => provider.providerId,
+  )
+
+  if (providers.includes('password')) {
+    if (typeof password !== 'string' || !password) {
+      throw new Error('Please enter your current password.')
+    }
+
+    if (!user.email) {
+      throw new Error('Your account does not have a valid email address.')
+    }
+
+    const credential = EmailAuthProvider.credential(
+      user.email,
+      password,
+    )
+
+    await reauthenticateWithCredential(user, credential)
+  } else if (providers.includes('google.com')) {
+    const provider = new GoogleAuthProvider()
+    provider.setCustomParameters({ prompt: 'select_account' })
+
+    await reauthenticateWithPopup(user, provider)
+  } else {
+    throw new Error(
+      'Your sign-in method does not support email changes through this process.',
+    )
+  }
+
+  await verifyBeforeUpdateEmail(user, normalizedEmail)
+
+  return true
 }
